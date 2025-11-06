@@ -51,20 +51,26 @@ def load_and_preprocess_data(file_path):
     df = pd.read_csv(file_path)
     print(f"전체 데이터: {len(df)} 쌍")
 
+    print(df.head())
+
     # 전처리된 질문과 답변을 저장할 리스트 초기화
     questions = []
     answers = []
 
-    # 모든 질문-답변 쌍을 순회
-    for i, (q, a) in enumerate(zip(df['Q'], df['A'])):
-        # 각각 전처리 적용
-        clean_q = preprocess_sentence(q)
-        clean_a = preprocess_sentence(a)
+    lines = df["conversation"].apply(
+            lambda text: [l.strip() for l in text.split("\n") if l.strip()])
 
-        # 둘 다 유효한 문장인 경우만 저장
-        if clean_q and clean_a:
-            questions.append(clean_q)
-            answers.append(clean_a)
+    # 모든 질문-답변 쌍을 순회
+    for i, conv in enumerate(lines):
+        for j in range(len(conv) - 1):
+            # 각각 전처리 적용
+            clean_q = preprocess_sentence(conv[j])
+            clean_a = preprocess_sentence(conv[j+1])
+
+            # 둘 다 유효한 문장인 경우만 저장
+            if clean_q and clean_a:
+                questions.append(clean_q)
+                answers.append(clean_a)
 
         # 진행 상황 출력 (매 1000개마다)
         if (i + 1) % 1000 == 0:
