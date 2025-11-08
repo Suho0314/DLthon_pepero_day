@@ -1,6 +1,9 @@
 import sentencepiece as spm
 
-def train_sentencepiece_model(conversations, model_prefix='./configs/spm_dktc', vocab_size=1500):
+def train_sentencepiece_model(conversations, 
+                              model_prefix='./configs/spm_dktc', 
+                              all_sentences_path='./configs/sentences.txt', 
+                              vocab_size=1300):
     """
     주어진 conversations를 통해 SentencePiece 모델 학습
     
@@ -16,12 +19,12 @@ def train_sentencepiece_model(conversations, model_prefix='./configs/spm_dktc', 
     print("=" * 50)
 
     # 모든 문장을 하나의 텍스트 파일로 저장
-    all_sentences_path = './configs/sentences.txt'
     with open(all_sentences_path, 'w', encoding='utf-8') as f:
         f.write('\n'.join(conversations))
 
     # SentencePiece 학습 명령어 설정
-    # [CLS] 토큰 추가 : 분류를 위한 시작 토큰
+    # [CLS] 토큰 추가 : 분류를 위한 시작 토큰 
+    # (user_defined_symbols 명령어로 특수 토큰을 설정하면 자동으로 기본 특수 토큰 다음에 ID를 할당함)
     # --minloglevel=1: INFO 로그를 제외하고 WARNING, ERROR만 출력
     cmd = f'--input={all_sentences_path} \
            --model_prefix={model_prefix} \
@@ -68,6 +71,7 @@ class SentencePieceVocab:
         self.CLS_ID = 4  # Classification 토큰
 
         # 토큰 문자열 -> ID 매핑
+        # <s>, </s> : 각각 BOS, EOS를 의미
         self.stoi = {'<pad>': 0, '<unk>': 1, '<s>': 2, '</s>': 3, '[CLS]': 4}
 
         # ID -> 토큰 문자열 매핑 (전체 어휘)

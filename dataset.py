@@ -4,7 +4,7 @@ from tokenization import SentencePieceVocab
 
 import torch
 from torch.utils.data import Dataset
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, random_split, random_split
 
 class DKTCDataset(Dataset):
     """
@@ -93,9 +93,9 @@ def collate_fn(batch, pad_idx=0):
 
     return result
 
-def create_dataloaders(train_path, test_path, vocab_size=1500, max_length=400, batch_size=64):
+def create_dataloaders(train_path, test_path, vocab_size=1500, max_length=400, batch_size=64, validation_split=0.1):
     """
-    데이터를 로드, 전처리, 토큰화하고 PyTorch train/test DataLoader를 생성하는 메인 함수.
+    데이터를 로드, 전처리, 토큰화하고 PyTorch train/validation/test DataLoader를 생성하는 메인 함수.
     """
     # 1. 데이터 로드 및 전처리
     train_conversations, \
@@ -113,8 +113,8 @@ def create_dataloaders(train_path, test_path, vocab_size=1500, max_length=400, b
     # 3. SentencePiece Vocab 로드
     vocab = SentencePieceVocab(sp_model_path)
 
-    # 4. Dataset 생성
-    train_dataset = DKTCDataset(
+    # 4. 전체 학습 데이터셋 생성
+    full_train_dataset = DKTCDataset(
         train_conversations,
         train_labels,
         vocab,
@@ -122,6 +122,14 @@ def create_dataloaders(train_path, test_path, vocab_size=1500, max_length=400, b
         is_test=False
     )
 
+    # 5. Train / Validation 데이터셋으로 분리
+    num_train = len(full_train_dataset)
+    val_size = int(num_train * validation_split)
+    train_size = num_train - val_size
+    
+    train_dataset, val_dataset = random_split(full_train_dataset, [train_size, val_size])
+
+    # 6. 테스트 데이터셋 생성
     test_dataset = DKTCDataset(
         test_conversations,
         labels=None,  # 테스트 데이터에는 레이블이 없습니다.
@@ -130,11 +138,18 @@ def create_dataloaders(train_path, test_path, vocab_size=1500, max_length=400, b
         is_test=True
     )
 
-    # 5. DataLoader 생성
+    # 7. DataLoader 생성
     train_loader = DataLoader(
         train_dataset,
         batch_size=batch_size,
         shuffle=True,
+        collate_fn=lambda batch: collate_fn(batch, pad_idx=vocab.PAD_ID),
+    )
+
+    val_loader = DataLoader(
+        val_dataset,
+        batch_size=batch_size,
+        shuffle=False,
         collate_fn=lambda batch: collate_fn(batch, pad_idx=vocab.PAD_ID),
     )
 
@@ -146,7 +161,8 @@ def create_dataloaders(train_path, test_path, vocab_size=1500, max_length=400, b
     )
 
     print(f"\nTrain DataLoader 준비 완료: 총 {len(train_dataset)}개 conversations")
+    print(f"Validation DataLoader 준비 완료: 총 {len(val_dataset)}개 conversations")
     print(f"Test DataLoader 준비 완료: 총 {len(test_dataset)}개 conversations.")
 
-    return train_loader, test_loader, vocab
+    return train_loader, val_loader, test_loader, vocab
 
