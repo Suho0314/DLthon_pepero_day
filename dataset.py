@@ -93,7 +93,7 @@ def collate_fn(batch, pad_idx=0):
 
     return result
 
-def create_dataloaders(train_path, test_path, vocab_size=1500, max_length=400, batch_size=64, validation_split=0.1):
+def create_dataloaders(train_path, test_path, vocab_size=1320, max_length=400, batch_size=64, validation_split=0.1):
     """
     데이터를 로드, 전처리, 토큰화하고 PyTorch train/validation/test DataLoader를 생성하는 메인 함수.
     """
